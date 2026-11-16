@@ -2,7 +2,7 @@ async function getSoccerFixtures() {
   const apiKey = process.env.API_FOOTBALL_KEY;
 
   if (!apiKey) {
-    return { error: "API key not found" };
+    return { error: "API key not found in environment variables" };
   }
 
   try {
@@ -17,9 +17,11 @@ async function getSoccerFixtures() {
     );
 
     const data = await response.json();
+
+    // Return the full response so we can see errors
     return data;
   } catch (error) {
-    return { error: "Failed to fetch data" };
+    return { error: "Failed to fetch data from API" };
   }
 }
 
@@ -33,9 +35,14 @@ export default async function SoccerPage() {
         Upcoming Premier League matches
       </p>
 
-      {data?.error && (
+      {/* Show raw response for debugging */}
+      <div className="bg-gray-100 p-4 rounded text-xs overflow-auto">
+        <pre>{JSON.stringify(data, null, 2)}</pre>
+      </div>
+
+      {data?.errors && Object.keys(data.errors).length > 0 && (
         <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded">
-          {data.error}
+          API Error: {JSON.stringify(data.errors)}
         </div>
       )}
 
@@ -67,7 +74,7 @@ export default async function SoccerPage() {
         </div>
       ) : (
         <div className="bg-white border border-green-800 rounded-lg shadow p-6 text-center text-gray-500">
-          No upcoming matches found or data is loading...
+          No upcoming matches found.
         </div>
       )}
     </div>
