@@ -8,11 +8,10 @@ export default async function SoccerPage() {
     message = "API key is missing";
   } else {
     try {
-      // Get today's date in YYYY-MM-DD format
       const today = new Date().toISOString().split("T")[0];
 
       const res = await fetch(
-        `https://v3.football.api-sports.io/fixtures?date=${today}&league=39`,
+        `https://v3.football.api-sports.io/fixtures?date=${today}&league=39&season=2026`,
         {
           headers: {
             "x-apisports-key": apiKey,
@@ -27,7 +26,7 @@ export default async function SoccerPage() {
         message = JSON.stringify(data.errors, null, 2);
       } else if (data?.response) {
         matches = data.response;
-        message = `Found ${matches.length} matches`;
+        message = `Found ${matches.length} matches for today`;
       } else {
         message = JSON.stringify(data, null, 2);
       }
