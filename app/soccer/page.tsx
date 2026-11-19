@@ -8,18 +8,33 @@ export default async function SoccerPage() {
     errorMessage = "API key is missing";
   } else {
     try {
-      const res = await fetch(
-        `https://api.the-odds-api.com/v4/sports/soccer_epl/odds/?regions=uk&markets=h2h&oddsFormat=decimal&apiKey=${apiKey}`,
-        { next: { revalidate: 300 } }
+      // Fetch multiple leagues
+      const leagues = [
+        "soccer_epl",                 // Premier League
+        "soccer_uefa_champs_league",  // Champions League
+        "soccer_spain_la_liga",       // La Liga
+      ];
+
+      const results = await Promise.all(
+        leagues.map((league) =>
+          fetch(
+            `https://api.the-odds-api.com/v4/sports/\( {league}/odds/?regions=uk&markets=h2h&oddsFormat=decimal&apiKey= \){apiKey}`,
+            { next: { revalidate: 300 } }
+          ).then((res) => res.json())
+        )
       );
 
-      const data = await res.json();
+      // Combine all matches
+      matches = results
+        .filter((data) => Array.isArray(data))
+        .flat();
 
-      if (Array.isArray(data)) {
-        matches = data;
-      } else {
-        errorMessage = data?.message || "Failed to load matches";
-      }
+      // Sort by commence time
+      matches.sort(
+        (a, b) =>
+          new Date(a.commence_time).getTime() -
+          new Date(b.commence_time).getTime()
+      );
     } catch (err) {
       errorMessage = "Failed to fetch data";
     }
@@ -51,7 +66,7 @@ export default async function SoccerPage() {
       <div>
         <h2 className="text-2xl font-bold text-green-900">Soccer Predictions</h2>
         <p className="text-gray-600 text-sm mt-1">
-          Premier League – Predictions based on bookmaker odds
+          Premier League • Champions League • La Liga
         </p>
       </div>
 
@@ -140,7 +155,7 @@ export default async function SoccerPage() {
       ) : (
         !errorMessage && (
           <div className="text-center py-12 text-gray-500">
-            No upcoming Premier League matches at the moment.
+            No upcoming matches at the moment.
           </div>
         )
       )}
