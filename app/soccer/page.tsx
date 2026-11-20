@@ -8,35 +8,33 @@ export default async function SoccerPage() {
     errorMessage = "API key is missing";
   } else {
     try {
-      // Fetch multiple leagues
       const leagues = [
-        "soccer_epl",                 // Premier League
-        "soccer_uefa_champs_league",  // Champions League
-        "soccer_spain_la_liga",       // La Liga
+        { key: "soccer_epl", name: "Premier League" },
+        { key: "soccer_uefa_champs_league", name: "Champions League" },
+        { key: "soccer_spain_la_liga", name: "La Liga" },
       ];
 
-      const results = await Promise.all(
-        leagues.map((league) =>
-          fetch(
-            `https://api.the-odds-api.com/v4/sports/\( {league}/odds/?regions=uk&markets=h2h&oddsFormat=decimal&apiKey= \){apiKey}`,
-            { next: { revalidate: 300 } }
-          ).then((res) => res.json())
-        )
-      );
+      for (const league of leagues) {
+        const res = await fetch(
+          `https://api.the-odds-api.com/v4/sports/\( {league.key}/odds/?regions=uk&markets=h2h&oddsFormat=decimal&apiKey= \){apiKey}`,
+          { next: { revalidate: 300 } }
+        );
 
-      // Combine all matches
-      matches = results
-        .filter((data) => Array.isArray(data))
-        .flat();
+        const data = await res.json();
 
-      // Sort by commence time
+        if (Array.isArray(data)) {
+          matches = [...matches, ...data];
+        }
+      }
+
+      // Sort by date
       matches.sort(
         (a, b) =>
           new Date(a.commence_time).getTime() -
           new Date(b.commence_time).getTime()
       );
     } catch (err) {
-      errorMessage = "Failed to fetch data";
+      errorMessage = "Failed to fetch data. Please try again later.";
     }
   }
 
