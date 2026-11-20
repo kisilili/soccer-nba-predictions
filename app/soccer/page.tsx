@@ -8,33 +8,20 @@ export default async function SoccerPage() {
     errorMessage = "API key is missing";
   } else {
     try {
-      const leagues = [
-        { key: "soccer_epl", name: "Premier League" },
-        { key: "soccer_uefa_champs_league", name: "Champions League" },
-        { key: "soccer_spain_la_liga", name: "La Liga" },
-      ];
-
-      for (const league of leagues) {
-        const res = await fetch(
-          `https://api.the-odds-api.com/v4/sports/\( {league.key}/odds/?regions=uk&markets=h2h&oddsFormat=decimal&apiKey= \){apiKey}`,
-          { next: { revalidate: 300 } }
-        );
-
-        const data = await res.json();
-
-        if (Array.isArray(data)) {
-          matches = [...matches, ...data];
-        }
-      }
-
-      // Sort by date
-      matches.sort(
-        (a, b) =>
-          new Date(a.commence_time).getTime() -
-          new Date(b.commence_time).getTime()
+      const res = await fetch(
+        `https://api.the-odds-api.com/v4/sports/soccer_epl/odds/?regions=uk&markets=h2h&oddsFormat=decimal&apiKey=${apiKey}`,
+        { next: { revalidate: 300 } }
       );
+
+      const data = await res.json();
+
+      if (Array.isArray(data)) {
+        matches = data;
+      } else {
+        errorMessage = data?.message || "Failed to load matches";
+      }
     } catch (err) {
-      errorMessage = "Failed to fetch data. Please try again later.";
+      errorMessage = "Failed to fetch data";
     }
   }
 
@@ -64,7 +51,7 @@ export default async function SoccerPage() {
       <div>
         <h2 className="text-2xl font-bold text-green-900">Soccer Predictions</h2>
         <p className="text-gray-600 text-sm mt-1">
-          Premier League • Champions League • La Liga
+          Premier League – Predictions based on bookmaker odds
         </p>
       </div>
 
@@ -153,7 +140,7 @@ export default async function SoccerPage() {
       ) : (
         !errorMessage && (
           <div className="text-center py-12 text-gray-500">
-            No upcoming matches at the moment.
+            No upcoming Premier League matches at the moment.
           </div>
         )
       )}
