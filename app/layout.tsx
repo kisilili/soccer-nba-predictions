@@ -3,32 +3,50 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Soccer & NBA Predictions",
-  description: "Free soccer and NBA predictions and odds",
+  description: "Free daily soccer and NBA predictions based on bookmaker odds",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
-      <body className="bg-white text-gray-900 min-h-screen">
-        <header className="bg-green-900 text-white p-4 shadow">
-          <div className="max-w-5xl mx-auto flex justify-between items-center">
-            <h1 className="text-xl font-bold">Soccer & NBA Predictions</h1>
-            <nav className="space-x-4 text-sm">
-              <a href="/" className="hover:underline">Home</a>
-              <a href="/soccer" className="hover:underline">Soccer</a>
-              <a href="/nba" className="hover:underline">NBA</a>
+      <body className="bg-gray-50 text-gray-900 min-h-screen">
+        {/* Header */}
+        <header className="bg-green-900 text-white sticky top-0 z-50 shadow-md">
+          <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/" className="font-bold text-lg">
+              Soccer & NBA Predictions
+            </a>
+            <nav className="flex gap-5 text-sm">
+              <a href="/" className="hover:text-green-200">
+                Home
+              </a>
+              <a href="/soccer" className="hover:text-green-200">
+                Soccer
+              </a>
+              <a href="/nba" className="hover:text-green-200">
+                NBA
+              </a>
             </nav>
           </div>
         </header>
-        <main className="max-w-5xl mx-auto p-4">
+
+        {/* Main Content */}
+        <main className="max-w-3xl mx-auto px-4 py-6">
           {children}
         </main>
-        <footer className="text-center text-sm text-gray-500 py-6 border-t">
-          For entertainment only. Not financial or betting advice. Gamble responsibly.
+
+        {/* Footer */}
+        <footer className="border-t border-gray-200 mt-10">
+          <div className="max-w-3xl mx-auto px-4 py-6 text-center text-xs text-gray-500">
+            <p>
+              For entertainment only. Not financial or betting advice. Gamble
+              responsibly.
+            </p>
+          </div>
         </footer>
       </body>
     </html>
