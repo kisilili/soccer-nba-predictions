@@ -1,6 +1,5 @@
 export default async function NbaPage() {
   const apiKey = process.env.ODDS_API_KEY;
-
   let matches: any[] = [];
   let errorMessage = "";
 
@@ -12,9 +11,7 @@ export default async function NbaPage() {
         `https://api.the-odds-api.com/v4/sports/basketball_nba/odds/?regions=us&markets=h2h&oddsFormat=decimal&apiKey=${apiKey}`,
         { next: { revalidate: 300 } }
       );
-
       const data = await res.json();
-
       if (Array.isArray(data)) {
         matches = data;
       } else {
@@ -26,23 +23,24 @@ export default async function NbaPage() {
   }
 
   function getPrediction(match: any) {
-    const bookmaker = match.bookmakers?.[0];
-    const market = bookmaker?.markets?.[0];
-    const outcomes = market?.outcomes || [];
-
+    const outcomes = match.bookmakers?.[0]?.markets?.[0]?.outcomes || [];
     if (outcomes.length === 0) return null;
 
     const sorted = [...outcomes].sort((a: any, b: any) => a.price - b.price);
     const favorite = sorted[0];
+    const odds = favorite.price;
 
     let confidence = "Slight Favorite";
-    if (favorite.price <= 1.40) confidence = "Strong Favorite";
-    else if (favorite.price <= 1.90) confidence = "Favorite";
+    if (odds <= 1.40) confidence = "Strong Favorite";
+    else if (odds <= 1.90) confidence = "Favorite";
+
+    const probability = Math.round((1 / odds) * 100);
 
     return {
       winner: favorite.name,
       confidence,
-      odds: favorite.price,
+      odds,
+      probability,
     };
   }
 
@@ -56,7 +54,7 @@ export default async function NbaPage() {
       </div>
 
       {errorMessage && (
-        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg text-sm">
+        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl text-sm">
           {errorMessage}
         </div>
       )}
@@ -65,20 +63,14 @@ export default async function NbaPage() {
         <div className="space-y-4">
           {matches.map((match) => {
             const prediction = getPrediction(match);
-            const bookmaker = match.bookmakers?.[0];
-            const market = bookmaker?.markets?.[0];
-            const outcomes = market?.outcomes || [];
-
+            const outcomes = match.bookmakers?.[0]?.markets?.[0]?.outcomes || [];
             const home = outcomes.find((o: any) => o.name === match.home_team);
             const away = outcomes.find((o: any) => o.name === match.away_team);
 
             return (
-              <div
-                key={match.id}
-                className="bg-white border border-green-800 rounded-xl p-5 shadow-sm"
-              >
-                <div className="flex justify-between items-center text-sm text-gray-500 mb-3">
-                  <span className="font-medium">NBA</span>
+              <div key={match.id} className="bg-white border border-green-800 rounded-2xl p-5 shadow-sm">
+                <div className="flex justify-between text-sm text-gray-500 mb-3">
+                  <span>NBA</span>
                   <span>
                     {new Date(match.commence_time).toLocaleString("en-GB", {
                       weekday: "short",
@@ -90,53 +82,10 @@ export default async function NbaPage() {
                   </span>
                 </div>
 
-                <div className="text-center font-semibold text-lg mb-3">
-                  {match.home_team}{" "}
-                  <span className="text-gray-400 font-normal">vs</span>{" "}
-                  {match.away_team}
+                <div className="text-center font-semibold text-lg mb-4">
+                  {match.home_team} <span className="text-gray-400">vs</span> {match.away_team}
                 </div>
 
                 {prediction && (
-                  <div className="bg-green-900 text-white rounded-lg p-3 mb-4 text-center">
-                    <div className="text-xs uppercase tracking-wide opacity-80">
-                      Predicted Winner
-                    </div>
-                    <div className="text-lg font-bold mt-1">
-                      {prediction.winner}
-                    </div>
-                    <div className="text-sm mt-1 opacity-90">
-                      {prediction.confidence} • Odds {prediction.odds}
-                    </div>
-                  </div>
-                )}
-
-                {outcomes.length > 0 && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-                      <div className="text-xs text-gray-600 mb-1">Home</div>
-                      <div className="font-bold text-green-800 text-lg">
-                        {home?.price ?? "-"}
-                      </div>
-                    </div>
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-                      <div className="text-xs text-gray-600 mb-1">Away</div>
-                      <div className="font-bold text-green-800 text-lg">
-                        {away?.price ?? "-"}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        !errorMessage && (
-          <div className="text-center py-12 text-gray-500">
-            No upcoming NBA games at the moment.
-          </div>
-        )
-      )}
-    </div>
-  );
-}
+                  <div className="bg-green-900 text-white rounded-xl p-4 mb-4 text-center">
+                    <
