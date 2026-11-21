@@ -12,11 +12,8 @@ export default async function NbaPage() {
         { next: { revalidate: 300 } }
       );
       const data = await res.json();
-      if (Array.isArray(data)) {
-        matches = data;
-      } else {
-        errorMessage = data?.message || "Failed to load matches";
-      }
+      if (Array.isArray(data)) matches = data;
+      else errorMessage = data?.message || "Failed to load matches";
     } catch (err) {
       errorMessage = "Failed to fetch data";
     }
@@ -36,21 +33,14 @@ export default async function NbaPage() {
 
     const probability = Math.round((1 / odds) * 100);
 
-    return {
-      winner: favorite.name,
-      confidence,
-      odds,
-      probability,
-    };
+    return { winner: favorite.name, confidence, odds, probability };
   }
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-green-900">NBA Predictions</h2>
-        <p className="text-gray-600 text-sm mt-1">
-          Upcoming NBA games – Predictions based on bookmaker odds
-        </p>
+        <p className="text-gray-600 text-sm mt-1">Upcoming NBA games – Predictions based on bookmaker odds</p>
       </div>
 
       {errorMessage && (
@@ -73,11 +63,8 @@ export default async function NbaPage() {
                   <span>NBA</span>
                   <span>
                     {new Date(match.commence_time).toLocaleString("en-GB", {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
+                      weekday: "short", day: "numeric", month: "short",
+                      hour: "2-digit", minute: "2-digit",
                     })}
                   </span>
                 </div>
@@ -88,4 +75,38 @@ export default async function NbaPage() {
 
                 {prediction && (
                   <div className="bg-green-900 text-white rounded-xl p-4 mb-4 text-center">
-                    <
+                    <div className="text-xs uppercase opacity-80 mb-1">Predicted Winner</div>
+                    <div className="text-xl font-bold">{prediction.winner}</div>
+                    <div className="text-sm mt-1 opacity-90">
+                      {prediction.confidence} • Odds {prediction.odds}
+                    </div>
+                    <div className="text-xs mt-2 opacity-80">
+                      Bookmakers give this \~{prediction.probability}% chance
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
+                    <div className="text-xs text-gray-600 mb-1">Home</div>
+                    <div className="font-bold text-green-800 text-lg">{home?.price ?? "-"}</div>
+                  </div>
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
+                    <div className="text-xs text-gray-600 mb-1">Away</div>
+                    <div className="font-bold text-green-800 text-lg">{away?.price ?? "-"}</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        !errorMessage && (
+          <div className="text-center py-12 text-gray-500">
+            No upcoming NBA games at the moment.
+          </div>
+        )
+      )}
+    </div>
+  );
+}
