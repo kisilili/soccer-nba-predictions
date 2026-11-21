@@ -1,74 +1,179 @@
-async function getSoccerFixtures() {
-  const apiKey = process.env.API_FOOTBALL_KEY;
+export default async function SoccerPage() {
+  const apiKey = process.env.ODDS_API_KEY;
+
+  let matches: any[] = [];
+  let errorMessage = "";
 
   if (!apiKey) {
-    return { error: "API key not found" };
-  }
+    errorMessage = "API key is missing";
+  } else {
+    try {
+      const res = await fetch(
+        `https://api.the-odds-api.com/v4/sports/soccer_epl/odds/?regions=uk&markets=h2h&oddsFormat=decimal&apiKey=${apiKey}`,
+        { next: { revalidate: 300 } }
+      );
 
-  try {
-    const response = await fetch(
-      "https://v3.football.api-sports.io/fixtures?next=10&league=39", // Premier League next 10 matches
-      {
-        headers: {
-          "x-apisports-key": apiKey,
-        },
-        next: { revalidate: 3600 }, // cache for 1 hour
+      const data = await res.json();
+
+      if (Array.isArray(data)) {
+        matches = data;
+      } else {
+        errorMessage = data?.message || "Failed to load matches";
       }
-    );
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    return { error: "Failed to fetch data" };
+    } catch (err) {
+      errorMessage = "Failed to fetch data";
+    }
   }
-}
 
-export default async function SoccerPage() {
-  const data = await getSoccerFixtures();
+  function getPrediction(match: any) {
+    const bookmakers = match.bookmakers || [];
+    if (bookmakers.length === 0) return null;
+
+    const allOutcomes: any[] = [];
+    bookmakers.forEach((bm: any) => {
+      const market = bm.markets?.find((m: any) => m.key === "h2h");
+      if (market?.outcomes) {
+        allOutcomes.push(...market.outcomes);
+      }
+    });
+
+    if (allOutcomes.length === 0) return null;
+
+    const bestOdds: Record<string, number> = {};
+    allOutcomes.forEach((o) => {
+      if (!bestOdds[o.name] || o.price < bestOdds[o.name]) {
+        bestOdds[o.name] = o.price;
+      }
+    });
+
+    const sorted = Object.entries(bestOdds).sort((a, b) => a[1] - b[1]);
+    const [winner, odds] = sorted[0];
+
+    let confidence = "Slight Favorite";
+    if (odds <= 1.40) confidence = "Strong Favorite";
+    else if (odds <= 1.90) confidence = "Favorite";
+
+    const probability = ((1 / odds) * 100).toFixed(0);
+
+    return {
+      winner,
+      confidence,
+      odds,
+      probability,
+      bookmakersCount: bookmakers.length,
+    };
+  }
+
+  const lastUpdated = new Date().toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-green-900">Soccer Predictions</h2>
-      <p className="text-gray-600 text-sm">
-        Upcoming Premier League matches (free data from API-Football)
-      </p>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-green-900">Soccer Predictions</h2>
+        <p className="text-gray-600 text-sm mt-1">
+          Premier League – Predictions based on bookmaker odds
+        </p>
+        <p className="text-xs text-gray-400 mt-1">
+          Last updated: {lastUpdated}
+        </p>
+      </div>
 
-      {data?.error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded">
-          {data.error}
+      {errorMessage && (
+        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl text-sm">
+          {errorMessage}
         </div>
       )}
 
-      {data?.response?.length > 0 ? (
-        <div className="space-y-3">
-          {data.response.map((match: any) => (
-            <div
-              key={match.fixture.id}
-              className="bg-white border border-green-800 rounded-lg p-4 shadow-sm"
-            >
-              <div className="flex justify-between items-center text-sm text-gray-500 mb-2">
-                <span>{match.league.name}</span>
-                <span>
-                  {new Date(match.fixture.date).toLocaleString("en-GB", {
-                    day: "numeric",
-                    month: "short",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </span>
+      {matches.length > 0 ? (
+        <div className="space-y-4">
+          {matches.map((match) => {
+            const prediction = getPrediction(match);
+            const bookmaker = match.bookmakers?.[0];
+            const market = bookmaker?.markets?.[0];
+            const outcomes = market?.outcomes || [];
+
+            const home = outcomes.find((o: any) => o.name === match.home_team);
+            const draw = outcomes.find((o: any) => o.name === "Draw");
+            const away = outcomes.find((o: any) => o.name === match.away_team);
+
+            return (
+              <div
+                key={match.id}
+                className="bg-white border border-green-800 rounded-2xl p-5 shadow-sm"
+              >
+                <div className="flex justify-between items-center text-sm text-gray-500 mb-3">
+                  <span className="font-medium">{match.sport_title}</span>
+                  <span>
+                    {new Date(match.commence_time).toLocaleString("en-GB", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+
+                <div className="text-center font-semibold text-lg mb-4">
+                  {match.home_team}{" "}
+                  <span className="text-gray-400 font-normal">vs</span>{" "}
+                  {match.away_team}
+                </div>
+
+                {prediction && (
+                  <div className="bg-green-900 text-white rounded-xl p-4 mb-4 text-center">
+                    <div className="text-xs uppercase tracking-wide opacity-80 mb-1">
+                      Predicted Winner
+                    </div>
+                    <div className="text-xl font-bold">
+                      {prediction.winner}
+                    </div>
+                    <div className="text-sm mt-1 opacity-90">
+                      {prediction.confidence} • Best Odds {prediction.odds}
+                    </div>
+                    <div className="text-xs mt-2 opacity-80">
+                      Bookmakers give this \~{prediction.probability}% chance • Based on {prediction.bookmakersCount} bookmakers
+                    </div>
+                  </div>
+                )}
+
+                {outcomes.length > 0 && (
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
+                      <div className="text-xs text-gray-600 mb-1">Home</div>
+                      <div className="font-bold text-green-800 text-lg">
+                        {home?.price ?? "-"}
+                      </div>
+                    </div>
+                    <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
+                      <div className="text-xs text-gray-600 mb-1">Draw</div>
+                      <div className="font-bold text-green-800 text-lg">
+                        {draw?.price ?? "-"}
+                      </div>
+                    </div>
+                    <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
+                      <div className="text-xs text-gray-600 mb-1">Away</div>
+                      <div className="font-bold text-green-800 text-lg">
+                        {away?.price ?? "-"}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="flex justify-between items-center font-medium">
-                <span>{match.teams.home.name}</span>
-                <span className="text-gray-400">vs</span>
-                <span>{match.teams.away.name}</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
-        <div className="bg-white border border-green-800 rounded-lg shadow p-6 text-center text-gray-500">
-          No upcoming matches found or data is loading...
-        </div>
+        !errorMessage && (
+          <div className="text-center py-12 text-gray-500">
+            No upcoming Premier League matches at the moment.
+          </div>
+        )
       )}
     </div>
   );
